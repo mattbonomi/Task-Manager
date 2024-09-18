@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Task Management System</title>
+    <style>
+        /* Styles */
+
+        /* Dark Theme Styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #121212;
+            color: #ffffff;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #ffffff;
+        }
+        .company-header {
+            cursor: pointer;
+            margin: 10px 0;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 18px;
+        }
+        .company-header:hover {
+            background-color: #333333;
+        }
+        .company-content {
+            display: none;
+            margin-bottom: 20px;
+        }
+        .task-table {
+            width: 100%;
+            margin-top: 10px;
+            border-collapse: collapse;
+            background-color: #1e1e1e;
+        }
+        .task-table th, .task-table td {
+            border: 1px solid #444444;
+            padding: 12px;
+            text-align: center;
+            color: #ffffff;
+        }
+        .task-table th {
+            background-color: #2d2d2d;
+            color: #ffffff;
+            text-transform: uppercase;
+        }
+        .add-task-form, .edit-task-form {
+            margin-top: 10px;
+        }
+        .add-task-form table, .edit-task-form table {
+            width: 100%;
+            background-color: #1e1e1e;
+        }
+        .add-task-form td, .edit-task-form td {
+            padding: 5px;
+        }
+        .add-task-form input, .add-task-form select, .add-task-form textarea,
+        .edit-task-form input, .edit-task-form select, .edit-task-form textarea {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            background-color: #2d2d2d;
+            color: #ffffff;
+            border: 1px solid #444444;
+        }
+        .add-task-form button, .edit-task-form button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .add-task-form button:hover, .edit-task-form button:hover {
+            background-color: #0056b3;
+        }
+        /* Highlight overdue tasks */
+        .overdue {
+            background-color: #8B0000; /* Dark red */
+        }
+        /* Action Buttons */
+        .action-buttons button {
+            margin: 0 2px;
+            padding: 5px 10px;
+            font-size: 12px;
+            color: #ffffff;
+        }
+        .action-buttons .edit-button {
+            background-color: #ffc107;
+            color: #000000;
+            border: none;
+            cursor: pointer;
+        }
+        .action-buttons .edit-button:hover {
+            background-color: #e0a800;
+        }
+        .action-buttons .delete-button {
+            background-color: #dc3545;
+            border: none;
+            cursor: pointer;
+        }
+        .action-buttons .delete-button:hover {
+            background-color: #c82333;
+        }
+        /* Priority Color Coding */
+        .priority-low {
+            background-color: #006400; /* Dark green */
+            color: #ffffff;
+        }
+        .priority-medium {
+            background-color: #DAA520; /* Goldenrod */
+            color: #ffffff;
+        }
+        .priority-high {
+            background-color: #8B0000; /* Dark red */
+            color: #ffffff;
+        }
+        /* Status Color Coding */
+        .status-not-started {
+            background-color: #6c757d; /* Secondary */
+            color: #ffffff;
+        }
+        .status-processing {
+            background-color: #007bff; /* Primary */
+            color: #ffffff;
+        }
+        .status-waiting-for-approval {
+            background-color: #17a2b8; /* Info */
+            color: #ffffff;
+        }
+        .status-pending-review {
+            background-color: #DAA520; /* Warning */
+            color: #000000;
+        }
+        .status-on-hold {
+            background-color: #dc3545; /* Danger */
+            color: #ffffff;
+        }
+        .status-completed {
+            background-color: #28a745; /* Success */
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Task Management System</h1>
+        <div id="companies-container">
+            <!-- Content populated dynamically -->
+        </div>
+    </div>
+
+    <script>
+        // Define companies and their units
+        const companies = {
+            'AB Express': ['554', '226'],
+            'CT Express': ['981', '916', '809', '799', '798', '500_CT', '400', '122', '121', '120', '119', '118', '117', '116', '115', '114', '113', '112', '111', '110', '109', '108', '107', '106', '105', '104', '103', '102', '101', '88', '031', '009'],
+            'Pan Logistics': ['6273', '5676', '886', '572', '500_PL', '413', '170', '89', '25', '20', '007', '006'],
+            'Stratan': ['2307', '2304', '2303', '2216', '2215', '2214', '2207', '2204', '2202', '2104', '017', '001'],
+            'United Trans Logistics': ['F-16', '992', '978', '893', '891', '890', '8896', '8895', '8894', '8893', '8891', '865', '801', '748', '713', '712', '711', '565255', '468818', '468813', '454252', '2151', '2043', '1992']
+        };
+
+        // Predefined options for dropdowns
+        const agents = ['Bautista', 'Eric', 'Eze', 'Lucas', 'Jose', 'Youcef'];
+        const statuses = ['Not Started', 'Processing', 'Waiting for Approval', 'Pending Review', 'On Hold', 'Completed'];
+        const priorities = ['Low', 'Medium', 'High'];
+
+        // Mapping statuses to CSS classes for color coding
+        const statusClasses = {
+            'Not Started': 'status-not-started',
+            'Processing': 'status-processing',
+            'Waiting for Approval': 'status-waiting-for-approval',
+            'Pending Review': 'status-pending-review',
+            'On Hold': 'status-on-hold',
+            'Completed': 'status-completed'
+        };
+
+        // Mapping priorities to CSS classes for color coding
+        const priorityClasses = {
+            'Low': 'priority-low',
+            'Medium': 'priority-medium',
+            'High': 'priority-high'
+        };
+
+        // Request permission for notifications
+        if ('Notification' in window) {
+            Notification.requestPermission();
+        }
+
+        // Fetch tasks from Google Sheets and display them
+        async function fetchTasks() {
+            try {
+                const response = await fetch('http://localhost:3000/tasks');
+                const tasks = await response.json();
+
+                displayCompanies(tasks);
+                scheduleNotifications(tasks);
+            } catch (error) {
+                console.error('Error fetching tasks:', error);
+                alert('Error fetching tasks. Please try again.');
+            }
+        }
+
+        // Display companies and tasks
+        function displayCompanies(tasks) {
+            const container = document.getElementById('companies-container');
+            container.innerHTML = '';  // Clear existing content
+
+            Object.keys(companies).forEach(companyName => {
+                const units = companies[companyName];
+
+                const companyHeader = document.createElement('div');
+                companyHeader.classList.add('company-header');
+                companyHeader.textContent = companyName;
+
+                const companyContent = document.createElement('div');
+                companyContent.classList.add('company-content');
+
+                // Task Table
+                const table = document.createElement('table');
+                table.classList.add('task-table');
+
+                table.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>Unit</th>
+                            <th>Assigned Agent</th>
+                            <th>Status</th>
+                            <th>Due Date</th>
+                            <th>Priority</th>
+                            <th>Summary</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Tasks will be inserted here -->
+                    </tbody>
+                `;
+
+                const tbody = table.querySelector('tbody');
+
+                // Filter tasks for this company
+                const companyTasks = tasks.filter(task => units.includes(task.unitNumber));
+
+                companyTasks.forEach(task => {
+                    const { unitNumber, assignedAgent, status, dueDate, priority, summary } = task;
+
+                    const row = document.createElement('tr');
+
+                    // Highlight overdue tasks
+                    if (new Date(dueDate) < new Date()) {
+                        row.classList.add('overdue');
+                    }
+
+                    // Add priority class to the priority cell
+                    const priorityClass = priorityClasses[priority] || '';
+
+                    // Add status class to the status cell
+                    const statusClass = statusClasses[status] || '';
+
+                    row.innerHTML = `
+                        <td>${unitNumber}</td>
+                        <td>${assignedAgent}</td>
+                        <td class="${statusClass}">${status}</td>
+                        <td>${dueDate}</td>
+                        <td class="${priorityClass}">${priority}</td>
+                        <td>${summary}</td>
+                        <td class="action-buttons">
+                            <button class="edit-button" data-unit="${unitNumber}">Edit</button>
+                            <button class="delete-button" data-unit="${unitNumber}">Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                // Add Task Form
+                const addTaskForm = document.createElement('form');
+                addTaskForm.classList.add('add-task-form');
+
+                const formTable = document.createElement('table');
+
+                const formRow = document.createElement('tr');
+
+                // Unit Selection
+                const unitCell = document.createElement('td');
+                const unitSelect = document.createElement('select');
+                unitSelect.name = 'unitNumber';
+                unitSelect.required = true;
+                unitSelect.innerHTML = '<option value="">Unit</option>';
+                units.forEach(unit => {
+                    const option = document.createElement('option');
+                    option.value = unit;
+                    option.textContent = unit;
+                    unitSelect.appendChild(option);
+                });
+                unitCell.appendChild(unitSelect);
+                formRow.appendChild(unitCell);
+
+                // Assigned Agent Selection
+                const agentCell = document.createElement('td');
+                const agentSelect = document.createElement('select');
+                agentSelect.name = 'assignedAgent';
+                agentSelect.required = true;
+                agentSelect.innerHTML = '<option value="">Agent</option>';
+                agents.forEach(agent => {
+                    const option = document.createElement('option');
+                    option.value = agent;
+                    option.textContent = agent;
+                    agentSelect.appendChild(option);
+                });
+                agentCell.appendChild(agentSelect);
+                formRow.appendChild(agentCell);
+
+                // Status Selection
+                const statusCell = document.createElement('td');
+                const statusSelect = document.createElement('select');
+                statusSelect.name = 'status';
+                statusSelect.required = true;
+                statusSelect.innerHTML = '<option value="">Status</option>';
+                statuses.forEach(status => {
+                    const option = document.createElement('option');
+                    option.value = status;
+                    option.textContent = status;
+                    statusSelect.appendChild(option);
+                });
+                statusCell.appendChild(statusSelect);
+                formRow.appendChild(statusCell);
+
+                // Due Date Input
+                const dueDateCell = document.createElement('td');
+                const dueDateInput = document.createElement('input');
+                dueDateInput.type = 'datetime-local';
+                dueDateInput.name = 'dueDate';
+                dueDateInput.required = true;
+                dueDateCell.appendChild(dueDateInput);
+                formRow.appendChild(dueDateCell);
+
+                // Priority Selection
+                const priorityCell = document.createElement('td');
+                const prioritySelect = document.createElement('select');
+                prioritySelect.name = 'priority';
+                prioritySelect.required = true;
+                prioritySelect.innerHTML = '<option value="">Priority</option>';
+                priorities.forEach(priority => {
+                    const option = document.createElement('option');
+                    option.value = priority;
+                    option.textContent = priority;
+                    prioritySelect.appendChild(option);
+                });
+                priorityCell.appendChild(prioritySelect);
+                formRow.appendChild(priorityCell);
+
+                // Summary Textarea
+                const summaryCell = document.createElement('td');
+                const summaryInput = document.createElement('textarea');
+                summaryInput.name = 'summary';
+                summaryInput.rows = 2;
+                summaryInput.placeholder = 'Summary';
+                summaryCell.appendChild(summaryInput);
+                formRow.appendChild(summaryCell);
+
+                // Submit Button
+                const submitCell = document.createElement('td');
+                const submitButton = document.createElement('button');
+                submitButton.type = 'submit';
+                submitButton.textContent = 'Add Task';
+                submitCell.appendChild(submitButton);
+                formRow.appendChild(submitCell);
+
+                // Append row to form table
+                formTable.appendChild(formRow);
+                addTaskForm.appendChild(formTable);
+
+                companyContent.appendChild(table);
+                companyContent.appendChild(addTaskForm);
+                container.appendChild(companyHeader);
+                container.appendChild(companyContent);
+
+                companyHeader.addEventListener('click', () => toggleCompany(companyHeader));
+
+                // Handle Add Task Form Submission
+                addTaskForm.addEventListener('submit', function(event) {
+                    event.preventDefault();
+                    const formData = new FormData(addTaskForm);
+                    const newTask = {
+                        unitNumber: formData.get('unitNumber'),
+                        assignedAgent: formData.get('assignedAgent'),
+                        status: formData.get('status'),
+                        dueDate: formData.get('dueDate'),
+                        priority: formData.get('priority'),
+                        summary: formData.get('summary')
+                    };
+                    // Call function to send new task to server
+                    addTask(newTask).then(() => {
+                        // Refresh tasks after adding a new one
+                        fetchTasks();
+                        // Show notification
+                        showTaskSentNotification(newTask);
+                    });
+                    // Optionally, reset the form after submission
+                    addTaskForm.reset();
+                });
+
+                // Edit and Delete Button Event Listeners
+                tbody.querySelectorAll('.edit-button').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const unitNumber = button.getAttribute('data-unit');
+                        const task = companyTasks.find(t => t.unitNumber === unitNumber);
+                        if (task) {
+                            showEditForm(companyContent, task);
+                        }
+                    });
+                });
+
+                tbody.querySelectorAll('.delete-button').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const unitNumber = button.getAttribute('data-unit');
+                        if (confirm(`Are you sure you want to delete task for unit ${unitNumber}?`)) {
+                            deleteTask(unitNumber).then(() => {
+                                fetchTasks();
+                            });
+                        }
+                    });
+                });
+
+            }); // Closing brace for Object.keys(companies).forEach
+
+            // Show the companies container
+            document.getElementById('companies-container').style.display = 'block';
+
+        } // Closing brace for displayCompanies function
+
+        // Function to toggle the company section
+        function toggleCompany(header) {
+            const content = header.nextElementSibling;
+            content.style.display = content.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Function to send the new task to the server
+        async function addTask(task) {
+            const values = [
+                task.unitNumber,
+                task.assignedAgent,
+                task.status,
+                task.dueDate,
+                task.priority,
+                task.summary
+            ];
+            const data = {
+                unitNumber: task.unitNumber,
+                values: values
+            };
+            try {
+                const response = await fetch('http://localhost:3000/tasks/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                if (!response.ok) {
+                    alert('Failed to add task');
+                }
+            } catch (error) {
+                console.error('Error adding task:', error);
+                alert('Error adding task');
+            }
+        }
+
+        // Function to send updated task to the server
+        async function updateTask(task) {
+            const values = [
+                task.unitNumber,
+                task.assignedAgent,
+                task.status,
+                task.dueDate,
+                task.priority,
+                task.summary
+            ];
+            const data = {
+                unitNumber: task.unitNumber,
+                values: values
+            };
+            try {
+                const response = await fetch('http://localhost:3000/tasks/update', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                if (!response.ok) {
+                    alert('Failed to update task');
+                } else {
+                    showTaskUpdatedNotification(task);
+                }
+            } catch (error) {
+                console.error('Error updating task:', error);
+                alert('Error updating task');
+            }
+        }
+
+        // Function to delete a task
+        async function deleteTask(unitNumber) {
+            try {
+                const response = await fetch(`http://localhost:3000/tasks/delete/${encodeURIComponent(unitNumber)}`, {
+                    method: 'DELETE'
+                });
+                if (!response.ok) {
+                    alert('Failed to delete task');
+                } else {
+                    showTaskDeletedNotification(unitNumber);
+                }
+            } catch (error) {
+                console.error('Error deleting task:', error);
+                alert('Error deleting task');
+            }
+        }
+
+        // Function to show the edit form
+        function showEditForm(companyContent, task) {
+            // Remove existing edit forms
+            const existingForm = companyContent.querySelector('.edit-task-form');
+            if (existingForm) existingForm.remove();
+
+            const editTaskForm = document.createElement('form');
+            editTaskForm.classList.add('edit-task-form');
+
+            const formTable = document.createElement('table');
+
+            const formRow = document.createElement('tr');
+
+            // Unit Number (Read-only)
+            const unitCell = document.createElement('td');
+            const unitInput = document.createElement('input');
+            unitInput.type = 'text';
+            unitInput.name = 'unitNumber';
+            unitInput.value = task.unitNumber;
+            unitInput.readOnly = true;
+            unitCell.appendChild(unitInput);
+            formRow.appendChild(unitCell);
+
+            // Assigned Agent Selection
+            const agentCell = document.createElement('td');
+            const agentSelect = document.createElement('select');
+            agentSelect.name = 'assignedAgent';
+            agents.forEach(agent => {
+                const option = document.createElement('option');
+                option.value = agent;
+                option.textContent = agent;
+                if (agent === task.assignedAgent) option.selected = true;
+                agentSelect.appendChild(option);
+            });
+            agentCell.appendChild(agentSelect);
+            formRow.appendChild(agentCell);
+
+            // Status Selection
+            const statusCell = document.createElement('td');
+            const statusSelect = document.createElement('select');
+            statusSelect.name = 'status';
+            statuses.forEach(status => {
+                const option = document.createElement('option');
+                option.value = status;
+                option.textContent = status;
+                if (status === task.status) option.selected = true;
+                statusSelect.appendChild(option);
+            });
+            statusCell.appendChild(statusSelect);
+            formRow.appendChild(statusCell);
+
+            // Due Date Input
+            const dueDateCell = document.createElement('td');
+            const dueDateInput = document.createElement('input');
+            dueDateInput.type = 'datetime-local';
+            dueDateInput.name = 'dueDate';
+            dueDateInput.value = task.dueDate;
+            dueDateCell.appendChild(dueDateInput);
+            formRow.appendChild(dueDateCell);
+
+            // Priority Selection
+            const priorityCell = document.createElement('td');
+            const prioritySelect = document.createElement('select');
+            prioritySelect.name = 'priority';
+            priorities.forEach(priority => {
+                const option = document.createElement('option');
+                option.value = priority;
+                option.textContent = priority;
+                if (priority === task.priority) option.selected = true;
+                prioritySelect.appendChild(option);
+            });
+            priorityCell.appendChild(prioritySelect);
+            formRow.appendChild(priorityCell);
+
+            // Summary Textarea
+            const summaryCell = document.createElement('td');
+            const summaryInput = document.createElement('textarea');
+            summaryInput.name = 'summary';
+            summaryInput.rows = 2;
+            summaryInput.placeholder = 'Summary';
+            summaryInput.value = task.summary;
+            summaryCell.appendChild(summaryInput);
+            formRow.appendChild(summaryCell);
+
+            // Submit Button
+            const submitCell = document.createElement('td');
+            const submitButton = document.createElement('button');
+            submitButton.type = 'submit';
+            submitButton.textContent = 'Update Task';
+            submitCell.appendChild(submitButton);
+            formRow.appendChild(submitCell);
+
+            // Append row to form table
+            formTable.appendChild(formRow);
+            editTaskForm.appendChild(formTable);
+
+            // Insert the edit form before the add task form
+            companyContent.insertBefore(editTaskForm, companyContent.querySelector('.add-task-form'));
+
+            // Handle Edit Task Form Submission
+            editTaskForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                const formData = new FormData(editTaskForm);
+                const updatedTask = {
+                    unitNumber: formData.get('unitNumber'),
+                    assignedAgent: formData.get('assignedAgent'),
+                    status: formData.get('status'),
+                    dueDate: formData.get('dueDate'),
+                    priority: formData.get('priority'),
+                    summary: formData.get('summary')
+                };
+                // Call function to send updated task to server
+                updateTask(updatedTask).then(() => {
+                    // Refresh tasks after updating
+                    fetchTasks();
+                });
+                // Remove the edit form
+                editTaskForm.remove();
+            });
+        }
+
+        // Function to schedule notifications for due tasks
+        function scheduleNotifications(tasks) {
+            tasks.forEach(task => {
+                const dueDate = new Date(task.dueDate);
+                const now = new Date();
+                const timeUntilDue = dueDate - now;
+
+                // Only schedule if due date is in the future
+                if (timeUntilDue > 0) {
+                    setTimeout(() => {
+                        showDueNotification(task);
+                    }, timeUntilDue);
+                }
+            });
+        }
+
+        // Function to show a browser notification when a task is due
+        function showDueNotification(task) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                const notification = new Notification('Task Due', {
+                    body: `Task for unit ${task.unitNumber} is due now.`,
+                    icon: 'https://via.placeholder.com/128' // Optional icon
+                });
+                notification.onclick = () => {
+                    window.focus();
+                };
+            } else {
+                // Fallback to alert if notifications are not supported or permission denied
+                alert(`Task for unit ${task.unitNumber} is due now.`);
+            }
+        }
+
+        // Function to show a browser notification when a task is sent successfully
+        function showTaskSentNotification(task) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                const notification = new Notification('Task Sent', {
+                    body: `Task for unit ${task.unitNumber} was sent successfully.`,
+                    icon: 'https://via.placeholder.com/128' // Optional icon
+                });
+                notification.onclick = () => {
+                    window.focus();
+                };
+            } else {
+                // Fallback to alert if notifications are not supported or permission denied
+                alert(`Task for unit ${task.unitNumber} was sent successfully.`);
+            }
+        }
+
+        // Function to show a browser notification when a task is updated successfully
+        function showTaskUpdatedNotification(task) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                const notification = new Notification('Task Updated', {
+                    body: `Task for unit ${task.unitNumber} was updated successfully.`,
+                    icon: 'https://via.placeholder.com/128'
+                });
+                notification.onclick = () => {
+                    window.focus();
+                };
+            } else {
+                alert(`Task for unit ${task.unitNumber} was updated successfully.`);
+            }
+        }
+
+        // Function to show a browser notification when a task is deleted successfully
+        function showTaskDeletedNotification(unitNumber) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                const notification = new Notification('Task Deleted', {
+                    body: `Task for unit ${unitNumber} was deleted successfully.`,
+                    icon: 'https://via.placeholder.com/128'
+                });
+                notification.onclick = () => {
+                    window.focus();
+                };
+            } else {
+                alert(`Task for unit ${unitNumber} was deleted successfully.`);
+            }
+        }
+
+        // Fetch tasks on page load
+        fetchTasks();
+
+        // Optional: Poll for updates every 5 minutes
+        setInterval(fetchTasks, 300000); // 300,000 ms = 5 minutes
+
+    </script>
+</body>
+</html>
